@@ -30,10 +30,13 @@ conn = init_connection()
 
 # Constants
 TIME_SLOTS = [
-    (time(9, 0), time(12, 0)),   # 9 AM - 12 PM
-    (time(13, 0), time(16, 0)),  # 1 PM - 4 PM
-    (time(17, 0), time(20, 0)),  # 5 PM - 8 PM
-    (time(21, 0), time(23, 59))  # 9 PM - 12 AM
+    (time(9, 0), time(11, 0)),   # 9 AM - 11 AM
+    (time(11, 0), time(13, 0)),  # 11 AM - 1 PM
+    (time(13, 0), time(15, 0)),  # 1 PM - 3 PM
+    (time(15, 0), time(17, 0)),  # 3 PM - 5 PM
+    (time(17, 0), time(19, 0)),  # 5 PM - 7 PM
+    (time(19, 0), time(21, 0)),  # 9 PM - 9 PM
+    (time(21, 0), time(23, 0))   # 9 PM - 11 PM
 ]
 DAYS_OF_WEEK = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
 DAY_TO_INT = {day: i for i, day in enumerate(DAYS_OF_WEEK)}
@@ -47,7 +50,6 @@ if 'initialized' not in st.session_state:
     st.session_state.initialized = True
     st.session_state.form_data = {
         'availability': create_availability_grid(),
-        'avoid_times': create_availability_grid(),
         'skills': []
     }
 
@@ -137,21 +139,6 @@ def save_user_data(form_data: Dict[str, Any]) -> bool:
                         'is_available': True
                     })
         
-        # Handle avoid times
-        for day, slots in form_data['avoid_times'].items():
-            day_int = DAY_TO_INT[day]
-            for i, is_avoided in enumerate(slots):
-                if is_avoided:
-                    start_time = TIME_SLOTS[i][0]
-                    end_time = TIME_SLOTS[i][1]
-                    availability_records.append({
-                        'usn': user_data['usn'],
-                        'day_of_week': day_int,
-                        'time_slot_start': start_time.strftime('%H:%M:%S'),
-                        'time_slot_end': end_time.strftime('%H:%M:%S'),
-                        'is_available': False
-                    })
-        
         # Insert all availability records at once
         if availability_records:
             conn.table('sample_user_availability').insert(availability_records).execute()
@@ -163,7 +150,7 @@ def save_user_data(form_data: Dict[str, Any]) -> bool:
         raise e
 
 def render_availability_grid(grid_name: str, title: str):
-    """Render a grid for availability or avoid times"""
+    """Render a grid for availability times"""
     st.subheader(title)
     
     # Create columns for each day
@@ -338,7 +325,6 @@ def main():
             st.session_state.current_step = 'personal_info'
             st.session_state.form_data = {
                 'availability': create_availability_grid(),
-                'avoid_times': create_availability_grid(),
                 'skills': []
             }
             st.rerun()
@@ -414,10 +400,6 @@ def main():
         with st.form("availability_form"):
             st.info("Please select all time slots when you are typically available for study groups.")
             render_availability_grid('availability', "Available Times")
-            
-            st.header("Times to Avoid")
-            st.info("Please select all time slots when you are typically NOT available for study groups.")
-            render_availability_grid('avoid_times', "Unavailable Times")
             
             # Final submit button
             if st.form_submit_button("Submit All Information", type="primary"):
