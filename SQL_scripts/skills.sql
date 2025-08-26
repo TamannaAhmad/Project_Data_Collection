@@ -1,0 +1,21 @@
+INSERT INTO skills (name) VALUES 
+	('Python'), ('JavaScript'), ('Java'), ('C++'), ('C#'), ('Go'), ('Rust'), ('TypeScript'),
+    ('Swift'), ('Kotlin'), ('Ruby'), ('PHP'), ('SQL'), ('R'), ('MATLAB'), ('Dart'), ('Scala'),
+    ('HTML5'), ('CSS3'), ('React'), ('Angular'), ('Vue.js'), ('Node.js'), ('Express.js'),
+    ('Django'), ('Flask'), ('Spring Boot'), ('ASP.NET'), ('Ruby on Rails'), ('Laravel'),
+    ('Machine Learning'), ('Deep Learning'), ('Neural Networks'), ('Computer Vision'),
+    ('Natural Language Processing'), ('Reinforcement Learning'), ('Data Mining'),
+    ('Data Visualization'), ('Big Data'), ('Hadoop'), ('Spark'), ('TensorFlow'), ('PyTorch'),
+    ('Keras'), ('scikit-learn'), ('OpenCV'), ('NLTK'), ('spaCy'), ('Transformers'),
+    ('PostgreSQL'), ('MySQL'), ('MongoDB'), ('Redis'), ('SQLite'), ('Oracle'), ('Cassandra'),
+    ('AWS'), ('Azure'), ('Google Cloud'), ('Docker'), ('Kubernetes'), ('Terraform'),
+    ('CI/CD'), ('Jenkins'), ('GitHub Actions'), ('Ansible'), ('Linux'), ('Bash Scripting'),
+    ('Embedded Systems'), ('Arduino'), ('Raspberry Pi'), ('VLSI'), ('FPGA'), ('Verilog'),
+    ('VHDL'), ('PCB Design'), ('Circuit Design'), ('Signal Processing'), ('IoT'),
+    ('CAD'), ('SolidWorks'), ('AutoCAD'), ('ANSYS'), ('Finite Element Analysis'),
+    ('Thermodynamics'), ('Fluid Mechanics'), ('Mechatronics'), ('Robotics'),
+    ('AutoCAD Civil 3D'), ('Revit'), ('STAAD.Pro'), ('ETABS'), ('Construction Management'),
+    ('Structural Analysis'), ('Environmental Engineering'), ('Transportation Engineering'),
+    ('Project Management'), ('Agile'), ('Scrum'), ('Leadership'), ('Communication'),
+    ('Problem Solving'), ('Critical Thinking'), ('Teamwork'), ('Time Management')
+ON CONFLICT (name) DO NOTHING;
