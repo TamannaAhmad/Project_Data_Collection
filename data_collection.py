@@ -29,26 +29,53 @@ conn = init_connection()
 
 # Constants
 TIME_SLOTS = [
-    (time(9, 0), time(11, 0)),   # 9 AM - 11 AM
-    (time(11, 0), time(13, 0)),  # 11 AM - 1 PM
-    (time(13, 0), time(15, 0)),  # 1 PM - 3 PM
-    (time(15, 0), time(17, 0)),  # 3 PM - 5 PM
-    (time(17, 0), time(19, 0)),  # 5 PM - 7 PM
-    (time(19, 0), time(21, 0)),  # 7 PM - 9 PM
-    (time(21, 0), time(23, 0))   # 9 PM - 11 PM
+    (time(0, 0), time(2, 0)),   # 12 AM - 2 AM
+    (time(2, 0), time(4, 0)),  
+    (time(4, 0), time(6, 0)),  
+    (time(6 , 0), time(8, 0)), 
+    (time(8, 0), time(10, 0)), 
+    (time(10, 0), time(12, 0)),
+    (time(12, 0), time(14, 0)),
+    (time(14, 0), time(16, 0)),
+    (time(16, 0), time(18, 0)),
+    (time(18, 0), time(20, 0)),
+    (time(20, 0), time(22, 0)),
+    (time(22, 0), time(23, 59))
 ]
 DAYS_OF_WEEK = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
 DAY_TO_INT = {day: i for i, day in enumerate(DAYS_OF_WEEK)}
+
+def validate_input(value: str, field_name: str, max_length: int = 100) -> str:
+    """Validate and sanitize input"""
+    if not isinstance(value, str):
+        raise ValueError(f"{field_name} must be a string")
+    
+    # Remove potentially dangerous characters and strip whitespace
+    sanitized = value.strip()
+    
+    # Check length
+    if len(sanitized) > max_length:
+        raise ValueError(f"{field_name} is too long (max {max_length} characters)")
+    
+    # Basic pattern validation for names and USN
+    if field_name in ['first_name', 'last_name']:
+        if not sanitized.replace(' ', '').replace('-', '').replace("'", '').isalpha():
+            raise ValueError(f"{field_name} contains invalid characters")
+    elif field_name == 'usn':
+        if not sanitized.replace('-', '').isalnum():
+            raise ValueError("USN contains invalid characters")
+    
+    return sanitized
 
 # INITIALIZE FORM DATA
 @st.cache_data(ttl=3600)
 def get_skills() -> List[str]:
     """retrieve all skills from database to generate suggestions"""
     try:
-        result = conn.table('skills').select('name').order('name').execute() # retrive skills in alphabetical order
+        result = conn.table('skills').select('name').order('name').execute() # list skills in alphabetical order
         return [row['name'] for row in result.data]
     except Exception as e:
-        st.error(f"Error fetching skills: {e}")
+        st.error("Error fetching skills from database")
         return []
     
 def create_availability_grid() -> Dict[str, List[bool]]:
@@ -80,9 +107,9 @@ def render_skills_section():
     col1, col2 = st.columns([3, 1])
     
     with col1:
-        skill_options = [""] + all_skills + ["+ Add Custom Skill"] # blank option, list of skils, and custom skill option
+        skill_options = [""] + ["+ Add Custom Skill"] + all_skills  # blank option, list of skils, and custom skill option
         selected_skill = st.selectbox(
-            "Select or type a skill",
+            "Select or type a skill. If your desired skill is not in the list, select the '+ Add Custom Skill' option.",
             options=skill_options,
             key="skill_selector"
         )
@@ -100,7 +127,7 @@ def render_skills_section():
     
     with col2:
         proficiency_level = st.slider(
-            "Proficiency Level",
+            "Proficiency Level      Hover for help → ",
             min_value=0,
             max_value=5,
             value=3,
@@ -135,7 +162,7 @@ def render_skills_section():
             with col2:
                 # allows user to change proficiency even after adding a skill
                 new_proficiency = st.slider(
-                    "Proficiency",
+                    "Proficiency (can be changed after adding to list)",
                     min_value=0,
                     max_value=5,
                     value=skill_data.get('proficiency_level', 3),
@@ -164,7 +191,8 @@ def render_skills_section():
 def render_availability_grid():
     """Render availability grid"""
     st.subheader("Available Times")
-    st.info("Please select all time slots when you are typically available for study groups.")
+    st.markdown("Please select all time slots when you are typically available for study or project meetings.")
+    st.info("NOTE: If you are resubmitting the form, please fill in ALL of your available slots again.")
     
     # Create header
     cols = st.columns([2] + [1] * len(DAYS_OF_WEEK)) 
@@ -202,13 +230,18 @@ def render_availability_grid():
 def save_user_data(form_data: Dict[str, Any]) -> bool:
     """Save user data in the database"""
     try:
+        # Validate and sanitize inputs
+        usn = validate_input(form_data['usn'], 'usn', 10)
+        first_name = validate_input(form_data['first_name'], 'first_name', 50)
+        last_name = validate_input(form_data['last_name'], 'last_name', 50)
+        
         # Prepare user data
         user_data = {
-            'usn': form_data['usn'].upper(),
-            'first_name': form_data['first_name'].title(),
-            'last_name': form_data['last_name'].title(),
-            'department': form_data['department'],
-            'year': form_data['year']
+            'usn': usn.upper(),
+            'first_name': first_name.title(),
+            'last_name': last_name.title(),
+            'department': form_data['department'],  
+            'year': int(form_data['year'])  
         }
         
         # Upsert user data
@@ -216,10 +249,14 @@ def save_user_data(form_data: Dict[str, Any]) -> bool:
         
         # Handle skills
         for skill_data in form_data['skills']:
-            skill_name = skill_data['name'].strip()
+            skill_name = validate_input(skill_data['name'], 'skill_name', 100).strip()
             if not skill_name:
                 continue
-                
+            
+            proficiency = int(skill_data['proficiency_level'])
+            if not 0 <= proficiency <= 5:
+                raise ValueError("Invalid proficiency level")
+                ok
             # Get or create skill
             skill_result = conn.table('skills').select('skill_id').eq('name', skill_name).execute()
             if not skill_result.data:
@@ -230,44 +267,62 @@ def save_user_data(form_data: Dict[str, Any]) -> bool:
             
             # Upsert user-skill relationship
             user_skill_data = {
-                'usn': user_data['usn'],
+                'usn': usn.upper(),
                 'skill_id': skill_id,
-                'proficiency_level': skill_data['proficiency_level']
+                'proficiency_level': proficiency
             }
             conn.table('sample_user_skills').upsert(user_skill_data, on_conflict='usn,skill_id').execute()
-        
-        # Handle availability - clear existing first
-        conn.table('sample_user_availability').delete().eq('usn', user_data['usn']).execute()
         
         # Insert new availability
         availability_records = []
         for day, slots in form_data['availability'].items():
+            if day not in DAYS_OF_WEEK:
+                continue  # Skip invalid days
+                
             day_int = DAY_TO_INT[day]
             for i, is_available in enumerate(slots):
+                if i >= len(TIME_SLOTS):
+                    continue  # Skip invalid time slots
+                    
                 if is_available:
                     start_time = TIME_SLOTS[i][0]
                     end_time = TIME_SLOTS[i][1]
                     availability_records.append({
-                        'usn': user_data['usn'],
+                        'usn': usn.upper(),
                         'day_of_week': day_int,
                         'time_slot_start': start_time.strftime('%H:%M:%S'),
                         'time_slot_end': end_time.strftime('%H:%M:%S'),
                         'is_available': True
                     })
+                else:
+                    start_time = TIME_SLOTS[i][0]
+                    end_time = TIME_SLOTS[i][1]
+                    availability_records.append({
+                        'usn': usn.upper(),
+                        'day_of_week': day_int,
+                        'time_slot_start': start_time.strftime('%H:%M:%S'),
+                        'time_slot_end': end_time.strftime('%H:%M:%S'),
+                        'is_available': False
+                    })
         
         if availability_records:
-            conn.table('sample_user_availability').insert(availability_records).execute()
+            conn.table('sample_user_availability').upsert(availability_records, on_conflict = 'usn,day_of_week,time_slot_start,time_slot_end').execute()
         
         return True
             
+    except ValueError as ve:
+        st.error(f"Invalid input: {ve}")
+        return False
     except Exception as e:
-        raise e
+        st.error("Database error occurred. Please try again.")
+        return False
 
 def main():
     st.title("🎓 ScholarX - User Data Collection")
     
     if st.session_state.form_submitted:
         st.success("Thank you for submitting your information!")
+        "If you would like to change any information, please submit another response with the same USN."
         if st.button("Submit another response"):
             st.session_state.form_submitted = False
             st.session_state.current_step = 'personal_info'
@@ -282,7 +337,7 @@ def main():
     if st.session_state.current_step == 'personal_info':
         with st.form("personal_info_form"):
             st.header("Personal Information")
-            
+            st.info("We use this information to group profiles by demographics.")
             col1, col2 = st.columns(2)
             with col1:
                 usn = st.text_input("USN (10 characters)", 
@@ -290,10 +345,10 @@ def main():
                                   value=st.session_state.form_data.get('usn', ''))
                 first_name = st.text_input("First Name",
                                          value=st.session_state.form_data.get('first_name', ''))
-            
-            with col2:
                 last_name = st.text_input("Last Name",
                                         value=st.session_state.form_data.get('last_name', ''))
+            
+            with col2:
                 department = st.selectbox("Department", get_departments())
                 year = st.selectbox("Year of Study", [1, 2, 3, 4])
             
@@ -305,15 +360,23 @@ def main():
                 elif len(usn) != 10:
                     st.error("USN must be exactly 10 characters long.")
                 else:
-                    st.session_state.form_data.update({
-                        'usn': usn.upper(),
-                        'first_name': first_name.title(),
-                        'last_name': last_name.title(),
-                        'department': department,
-                        'year': year
-                    })
-                    st.session_state.current_step = 'skills'
-                    st.rerun()
+                    # Validate inputs before saving to session state
+                    try:
+                        validated_usn = validate_input(usn, 'usn', 10)
+                        validated_first_name = validate_input(first_name, 'first_name', 50)
+                        validated_last_name = validate_input(last_name, 'last_name', 50)
+                        
+                        st.session_state.form_data.update({
+                            'usn': validated_usn.upper(),
+                            'first_name': validated_first_name.title(),
+                            'last_name': validated_last_name.title(),
+                            'department': department,
+                            'year': year
+                        })
+                        st.session_state.current_step = 'skills'
+                        st.rerun()
+                    except ValueError as ve:
+                        st.error(f"Invalid input: {ve}")
     
     # Step 2: Skills
     elif st.session_state.current_step == 'skills':
@@ -331,18 +394,26 @@ def main():
             render_availability_grid()
             
             if st.form_submit_button("Submit All Information", type="primary"):
-                try:
-                    if save_user_data(st.session_state.form_data):
-                        st.session_state.form_submitted = True
-                        st.rerun()
-                except Exception as e:
-                    error_msg = str(e).lower()
-                    if "duplicate key" in error_msg:
-                        st.error("This USN is already registered. Please use a different USN.")
-                    elif "connection" in error_msg or "database" in error_msg:
-                        st.error("Database connection error. Please try again.")
-                    else:
-                        st.error(f"An unexpected error occurred. Please try again. Error: {str(e)}")
+                # Check if at least one availability slot is selected
+                has_availability = any(
+                    any(slots) for slots in st.session_state.form_data['availability'].values()
+                )
+                
+                if not has_availability:
+                    st.error("Please select at least one time slot when you're available for study groups.")
+                else:
+                    try:
+                        if save_user_data(st.session_state.form_data):
+                            st.session_state.form_submitted = True
+                            st.rerun()
+                    except Exception as e:
+                        error_msg = str(e).lower()
+                        if "duplicate key" in error_msg:
+                            st.error("This USN is already registered. Please use a different USN.")
+                        elif "connection" in error_msg or "database" in error_msg:
+                            st.error("Database connection error. Please try again.")
+                        else:
+                            st.error("An unexpected error occurred. Please try again.")
 
 if __name__ == "__main__":
     main()
