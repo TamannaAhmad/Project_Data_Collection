@@ -415,15 +415,6 @@ def main():
                         # Get the selected year
                         selected_year = st.session_state.get('year_select', 1)
                         
-                        # Validate that the USN year matches the selected year (if not first year)
-                        if selected_year > 1:
-                            usn_year = int(validated_usn[3:5])
-                            current_year = 25  # Last two digits of current year (2025)
-                            expected_year = current_year - (4 - selected_year)  # Calculate expected year
-                            
-                            if usn_year != (expected_year % 100):
-                                raise ValueError(f"USN year ({usn_year}) doesn't match selected year of study ({selected_year}). Expected year: {expected_year % 100}")
-                        
                         st.session_state.form_data.update({
                             'usn': validated_usn.upper(),
                             'first_name': validated_first_name.title(),

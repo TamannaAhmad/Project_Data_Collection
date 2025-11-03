@@ -16,6 +16,19 @@ def initialize_database():
     conn = get_db_connection()
     pass
 
+# Department code mapping
+def get_department_code(department_name: str) -> str:
+    """Get department code from department name"""
+    dept_mapping = {
+        "Computer Science Engineering": "CS",
+        "Artificial Intelligence and Data Science": "AD",
+        "Computer Science and Business Systems": "CB", 
+        "Electronics and Communications Engineering": "EC",
+        "Mechanical Engineering": "ME",
+        "Civil Engineering": "CV"
+    }
+    return dept_mapping.get(department_name, "XX")
+
 def get_departments() -> List[str]:
     return [
         "Computer Science Engineering",
