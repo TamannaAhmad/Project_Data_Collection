@@ -421,7 +421,7 @@ def main():
             st.info("We use this information to group profiles by demographics.")
             col1, col2 = st.columns(2)
             with col1:
-                usn = st.text_input("USN (10 characters, format: 1KG22AD123)", 
+                usn = st.text_input("USN (10 characters, format: 1KG22AD123; first years can use 1KG25[department code][roll number])", 
                                   max_chars=10,
                                   value=st.session_state.form_data.get('usn', ''))
                 first_name = st.text_input("First Name",
