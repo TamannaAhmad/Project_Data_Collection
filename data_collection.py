@@ -231,43 +231,82 @@ def render_skills_section():
             st.rerun()
 
 def render_availability_grid():
-    """Render availability grid"""
+    """Render availability grid with mobile-responsive layout"""
     st.subheader("Available Times")
     st.markdown("Please select all time slots when you are typically available for study or project meetings.")
     st.info("NOTE: If you are resubmitting the form, please fill in ALL of your available slots again.")
     
-    # Create header
-    cols = st.columns([2] + [1] * len(DAYS_OF_WEEK)) 
-    cols[0].write("**Time Slot**")
-    for i, day in enumerate(DAYS_OF_WEEK):
-        cols[i + 1].write(f"**{day}**")
+    # Mobile-responsive styles
+    st.markdown(
+        """
+        <style>
+        .availability-mobile-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .availability-mobile-day {
+            border: 1px solid #e0e0e0;
+            border-radius: 5px;
+            padding: 10px;
+            background-color: #f9f9f9;
+        }
+        .availability-mobile-day-header {
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        .availability-mobile-slot {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+        .availability-mobile-slot-time {
+            flex-grow: 1;
+            margin-right: 10px;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
     
-    # Create each row 
-    for time_idx, (start, end) in enumerate(TIME_SLOTS):
-        cols = st.columns([2] + [1] * len(DAYS_OF_WEEK))
+    # Create mobile-responsive grid
+    st.markdown('<div class="availability-mobile-grid">', unsafe_allow_html=True)
+    
+    # Iterate through each day
+    for day in DAYS_OF_WEEK:
+        st.markdown(f'<div class="availability-mobile-day">', unsafe_allow_html=True)
+        st.markdown(f'<div class="availability-mobile-day-header">{day}</div>', unsafe_allow_html=True)
         
-        # Time labels
-        time_label = f"{start.strftime('%I:%M %p')} - {end.strftime('%I:%M %p')}"
-        with cols[0]:
-            # used padding to align checkboxes with time slots
-            st.markdown(f'<div style="padding-top: 2px; padding-bottom: 15px;">{time_label}</div>', 
-                       unsafe_allow_html=True)
+        # Iterate through time slots for this day
+        for time_idx, (start, end) in enumerate(TIME_SLOTS):
+            time_label = f"{start.strftime('%I:%M %p')} - {end.strftime('%I:%M %p')}"
+            key = f"availability_{day}_{time_idx}"
+            current_value = st.session_state.form_data['availability'][day][time_idx]
+            
+            # Create a row for each time slot
+            st.markdown(f'<div class="availability-mobile-slot">', unsafe_allow_html=True)
+            
+            # Time label column
+            st.markdown(f'<div class="availability-mobile-slot-time">{time_label}</div>', unsafe_allow_html=True)
+            
+            # Checkbox column
+            new_value = st.checkbox(
+                "",
+                key=key,
+                value=current_value,
+                label_visibility="collapsed",
+            )
+            
+            # Update session state
+            st.session_state.form_data['availability'][day][time_idx] = new_value
+            
+            st.markdown('</div>', unsafe_allow_html=True)
         
-        # Checkboxes for each day
-        for day_idx, day in enumerate(DAYS_OF_WEEK):
-            with cols[day_idx + 1]:
-                key = f"availability_{day}_{time_idx}"
-                current_value = st.session_state.form_data['availability'][day][time_idx]
-                
-                new_value = st.checkbox(
-                    "",
-                    key=key,
-                    value=current_value,
-                    label_visibility="collapsed"
-                )
-                
-                # Update session state
-                st.session_state.form_data['availability'][day][time_idx] = new_value
+        st.markdown('</div>', unsafe_allow_html=True)
+    
+    st.markdown('</div>', unsafe_allow_html=True)
 
 def save_user_data(form_data: Dict[str, Any]) -> bool:
     """Save user data in the database"""
