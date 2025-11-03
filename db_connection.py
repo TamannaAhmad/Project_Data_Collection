@@ -22,6 +22,6 @@ def get_departments() -> List[str]:
         "Artificial Intelligence and Data Science",
         "Computer Science and Business Systems",
         "Electronics and Communications Engineering",
-        "Mechanical Engineering Engineering",
+        "Mechanical Engineering",
         "Civil Engineering"
     ]
