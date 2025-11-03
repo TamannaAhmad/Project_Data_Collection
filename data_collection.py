@@ -45,8 +45,17 @@ TIME_SLOTS = [
 DAYS_OF_WEEK = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
 DAY_TO_INT = {day: i for i, day in enumerate(DAYS_OF_WEEK)}
 
-def validate_usn_format(usn: str) -> bool:
-    """Validate USN format: 1KG[year][dept_code][roll_number]"""
+def validate_usn_format(usn: str, year: int = None) -> bool:
+    """
+    Validate USN format:
+    - For year 1: 3-digit roll number (000-999)
+    - For years 2-4: 1KG[year][dept_code][roll_number]
+    """
+    # For first year students, just validate it's a 3-digit number
+    if year == 1:
+        return len(usn) == 3 and usn.isdigit() and 0 <= int(usn) <= 999
+    
+    # For other years, use the full USN format
     if len(usn) != 10:
         return False
     
@@ -57,8 +66,8 @@ def validate_usn_format(usn: str) -> bool:
     # Check year (should be 2 digits, between 00 and current year's last two digits)
     current_year = 25  # Last two digits of current year (2025)
     try:
-        year = int(usn[3:5])
-        if not (0 <= year <= current_year):
+        usn_year = int(usn[3:5])
+        if not (0 <= usn_year <= current_year):
             return False
     except ValueError:
         return False
@@ -75,13 +84,17 @@ def validate_usn_format(usn: str) -> bool:
     
     return True
 
-def validate_input(value: str, field_name: str, max_length: int = 100) -> str:
+def validate_input(value: str, field_name: str, max_length: int = 100, year: int = None) -> str:
     """Validate and sanitize input"""
     if not isinstance(value, str):
         raise ValueError(f"{field_name} must be a string")
     
-    # Remove potentially dangerous characters and strip whitespace and convert to uppercase for USN
-    sanitized = value.strip().upper() if field_name == 'usn' else value.strip()
+    # Remove potentially dangerous characters and strip whitespace
+    sanitized = value.strip()
+    
+    # Convert to uppercase for USN (except for first year roll numbers)
+    if field_name == 'usn' and year != 1:
+        sanitized = sanitized.upper()
     
     # Check length
     if len(sanitized) > max_length:
@@ -94,11 +107,14 @@ def validate_input(value: str, field_name: str, max_length: int = 100) -> str:
     elif field_name == 'usn':
         if not sanitized.replace('-', '').isalnum():
             raise ValueError("USN contains invalid characters")
-        if not validate_usn_format(sanitized):
-            raise ValueError(
-                "Invalid USN format. Must be in the format: 1KG[year][dept_code][roll_number]\n"
-                "Example: 1KG22AD058 (1KG - prefix, 22 - year of admission, AD - department code, 001 - roll number)"
-            )
+        if not validate_usn_format(sanitized, year):
+            if year == 1:
+                raise ValueError("Roll number must be a 3-digit number (000-999)")
+            else:
+                raise ValueError(
+                    "Invalid USN format. Must be in the format: 1KG[year][dept_code][roll_number]\n"
+                    "Example: 1KG22AD058 (1KG - prefix, 22 - year, AD - department code, 058 - roll number)"
+                )
     
     return sanitized
 
@@ -375,9 +391,16 @@ def main():
             st.info("We use this information to group profiles by demographics.")
             col1, col2 = st.columns(2)
             with col1:
-                usn = st.text_input("USN (10 characters)", 
-                                  max_chars=10,
-                                  value=st.session_state.form_data.get('usn', ''))
+                # Show appropriate input based on year
+                year = st.selectbox("Year of Study", [1, 2, 3, 4])
+                if year == 1:
+                    usn = st.text_input("Roll Number (3 digits)", 
+                                      max_chars=3,
+                                      value=st.session_state.form_data.get('usn', ''))
+                else:
+                    usn = st.text_input("USN (10 characters, format: 1KG22AD123)", 
+                                      max_chars=10,
+                                      value=st.session_state.form_data.get('usn', ''))
                 first_name = st.text_input("First Name",
                                          value=st.session_state.form_data.get('first_name', ''))
                 last_name = st.text_input("Last Name",
@@ -385,19 +408,20 @@ def main():
             
             with col2:
                 department = st.selectbox("Department", get_departments())
-                year = st.selectbox("Year of Study", [1, 2, 3, 4])
             
             submitted = st.form_submit_button("Continue to Skills", type="primary")
             
             if submitted:
                 if not all([usn, first_name, last_name]):
                     st.error("Please fill in all required fields.")
-                elif len(usn) != 10:
-                    st.error("USN must be exactly 10 characters long.")
+                # Set max length based on year
+                max_length = 3 if year == 1 else 10
+                if (year == 1 and len(usn) != 3) or (year > 1 and len(usn) != 10):
+                    st.error(f"{'Roll number' if year == 1 else 'USN'} must be exactly {max_length} characters long.")
                 else:
                     # Validate inputs before saving to session state
                     try:
-                        validated_usn = validate_input(usn, 'usn', 10)
+                        validated_usn = validate_input(usn, 'usn', max_length, year)
                         validated_first_name = validate_input(first_name, 'first_name', 50)
                         validated_last_name = validate_input(last_name, 'last_name', 50)
                         
