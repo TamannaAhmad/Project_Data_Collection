@@ -31,10 +31,10 @@ def get_department_code(department_name: str) -> str:
 
 def get_departments() -> List[str]:
     return [
-        "Computer Science Engineering",
-        "Artificial Intelligence and Data Science",
-        "Computer Science and Business Systems",
-        "Electronics and Communications Engineering",
-        "Mechanical Engineering",
-        "Civil Engineering"
+        "Computer Science Engineering (CS)",
+        "Artificial Intelligence and Data Science (AD)",
+        "Computer Science and Business Systems (CB)",
+        "Electronics and Communications Engineering (EC)",
+        "Mechanical Engineering (ME)",
+        "Civil Engineering (CV)"
     ]
