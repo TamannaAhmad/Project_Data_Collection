@@ -45,25 +45,60 @@ TIME_SLOTS = [
 DAYS_OF_WEEK = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
 DAY_TO_INT = {day: i for i, day in enumerate(DAYS_OF_WEEK)}
 
+def validate_usn_format(usn: str) -> bool:
+    """Validate USN format: 1KG[year][dept_code][roll_number]"""
+    if len(usn) != 10:
+        return False
+    
+    # Check prefix
+    if not usn.startswith('1KG'):
+        return False
+    
+    # Check year (should be 2 digits, between 00 and current year's last two digits)
+    current_year = 25  # Last two digits of current year (2025)
+    try:
+        year = int(usn[3:5])
+        if not (0 <= year <= current_year):
+            return False
+    except ValueError:
+        return False
+    
+    # Check department code (2 uppercase letters)
+    dept_code = usn[5:7]
+    if not (dept_code.isalpha() and dept_code.isupper()):
+        return False
+    
+    # Check roll number (3 digits)
+    roll_number = usn[7:]
+    if not (roll_number.isdigit() and len(roll_number) == 3):
+        return False
+    
+    return True
+
 def validate_input(value: str, field_name: str, max_length: int = 100) -> str:
     """Validate and sanitize input"""
     if not isinstance(value, str):
         raise ValueError(f"{field_name} must be a string")
     
-    # Remove potentially dangerous characters and strip whitespace
-    sanitized = value.strip()
+    # Remove potentially dangerous characters and strip whitespace and convert to uppercase for USN
+    sanitized = value.strip().upper() if field_name == 'usn' else value.strip()
     
     # Check length
     if len(sanitized) > max_length:
         raise ValueError(f"{field_name} is too long (max {max_length} characters)")
     
-    # Basic pattern validation for names and USN
+    # Field-specific validations
     if field_name in ['first_name', 'last_name']:
         if not sanitized.replace(' ', '').replace('-', '').replace("'", '').isalpha():
             raise ValueError(f"{field_name} contains invalid characters")
     elif field_name == 'usn':
         if not sanitized.replace('-', '').isalnum():
             raise ValueError("USN contains invalid characters")
+        if not validate_usn_format(sanitized):
+            raise ValueError(
+                "Invalid USN format. Must be in the format: 1KG[year][dept_code][roll_number]\n"
+                "Example: 1KG22AD058 (1KG - prefix, 22 - year of admission, AD - department code, 001 - roll number)"
+            )
     
     return sanitized
 
